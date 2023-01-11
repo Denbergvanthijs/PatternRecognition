@@ -5,13 +5,13 @@ import tensorflow as tf
 
 
 # Load datasets
-# ds_train = tfds.load('celeb_a', split='train')
-# ds_val = tfds.load('celeb_a', split='validation')
+ds_train = tfds.load('celeb_a', split='train')
+ds_val = tfds.load('celeb_a', split='validation')
 ds_test = tfds.load('celeb_a', split='test')
 
-# Only select the image feature
-# ds_train = ds_train.map(lambda x: x['image'])
-# ds_val = ds_val.map(lambda x: x['image'])
+# Only select the image feature, reducing the dataset size
+ds_train = ds_train.map(lambda x: x['image'])
+ds_val = ds_val.map(lambda x: x['image'])
 ds_test = ds_test.map(lambda x: x['image'])
 
 
@@ -22,18 +22,24 @@ def greyscale_tf(image):
 
 
 # Convert test dataset to greyscale
+ds_train_grey_np = ds_train.map(lambda x: greyscale_tf(x))
+ds_val_grey_np = ds_val.map(lambda x: greyscale_tf(x))
 ds_test_grey_np = ds_test.map(lambda x: greyscale_tf(x))
 
 # Combine original with greyscaled images
 # This is to synchronise the images
-ds = tf.data.Dataset.zip((ds_test, ds_test_grey_np))
+ds_train_combined = tf.data.Dataset.zip((ds_train, ds_train_grey_np))
+ds_val_combined = tf.data.Dataset.zip((ds_val, ds_val_grey_np))
+ds_test_combined = tf.data.Dataset.zip((ds_test, ds_test_grey_np))
 
 # Make dataset smaller due to computational limitations
-ds = ds.take(100)
+ds_train_combined = ds_train_combined.take(100)
+ds_val_combined = ds_val_combined.take(100)
+ds_test_combined = ds_test_combined.take(100)
 
 # Plot images
 fig, axis = plt.subplots(2, 5, figsize=(10, 5), sharex=True, sharey=True)
-for i, (image, image_grey) in enumerate(ds.take(5)):
+for i, (image, image_grey) in enumerate(ds_test_combined.take(5)):
     plt.subplot(2, 5, i+1)
     plt.imshow(image)
     plt.subplot(2, 5, i+6)
@@ -42,9 +48,10 @@ plt.show()
 
 # Save dataset to two seperate numpy arrays
 # This is to save time when running the eventual colorisation scripts
-test_images, test_images_grey = zip(*ds.as_numpy_iterator())
-np.save('test_images.npy', np.array(test_images))
-np.save('test_images_grey.npy', np.array(test_images_grey))
+for name, dataset in zip(("train", "val", "test"), (ds_train_combined, ds_val_combined, ds_test_combined)):
+    images, images_grey = zip(*dataset.as_numpy_iterator())
+    np.save(f'./data/{name}_images.npy', np.array(images))
+    np.save(f'./data/{name}_images_grey.npy', np.array(images_grey))
 
 # Load npy files
 test_images = np.load('test_images.npy')
