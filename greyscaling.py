@@ -85,7 +85,3 @@ for i in range(5):
     plt.subplot(2, 5, i+6)
     plt.imshow(test_images_grey[i], cmap='gray')
 plt.show()
-
-# Save first five greyscale images as jpg
-for i in range(5):
-    plt.imsave(f'./images/greyscale{i}.jpg', test_images_grey[i], cmap='gray')
