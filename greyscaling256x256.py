@@ -4,6 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from tqdm import tqdm, trange
+
+TRAIN_SIZES = (100, 1_000, 2_500, 10_000)
+VAL_SIZE = 100
+TEST_SIZE = 100
 
 
 def greyscale_tf(image):
@@ -44,41 +49,70 @@ ds_train_combined = tf.data.Dataset.zip((ds_train, ds_train_grey_np))
 ds_val_combined = tf.data.Dataset.zip((ds_val, ds_val_grey_np))
 ds_test_combined = tf.data.Dataset.zip((ds_test, ds_test_grey_np))
 
-# Make dataset smaller due to computational limitations
-ds_train_combined = ds_train_combined.take(100)
-ds_val_combined = ds_val_combined.take(100)
-ds_test_combined = ds_test_combined.take(100)
-
 # Plot images
-fig, axis = plt.subplots(2, 5, figsize=(10, 5), sharex=True, sharey=True)
-for i, (image, image_grey) in enumerate(ds_test_combined.take(5)):
-    plt.subplot(2, 5, i+1)
-    plt.imshow(image)
-    plt.subplot(2, 5, i+6)
-    plt.imshow(image_grey, cmap='gray')
-plt.show()
-
-# Save dataset to two seperate numpy arrays
-# This is to save time when running the eventual colorisation scripts
-if not os.path.exists('./data/256'):
-    os.makedirs('./data/256')
-for name, dataset in zip(("train", "val", "test"), (ds_train_combined, ds_val_combined, ds_test_combined)):
-    images, images_grey = zip(*dataset.as_numpy_iterator())
-    np.save(f'./data/256/{name}_images_256x256.npy', np.array(images))
-    np.save(f'./data/256/{name}_images_grey_256x256.npy', np.array(images_grey))
-
-# Load npy files as a test
-test_images = np.load('./data/256/test_images_256x256.npy')
-test_images_grey = np.load('./data/256/test_images_grey_256x256.npy')
+# fig, axis = plt.subplots(2, 5, figsize=(10, 5), sharex=True, sharey=True)
+# for i, (image, image_grey) in enumerate(ds_test_combined.take(5)):
+#     plt.subplot(2, 5, i+1)
+#     plt.imshow(image)
+#     plt.subplot(2, 5, i+6)
+#     plt.imshow(image_grey, cmap='gray')
+# plt.show()
 
 # Make missing folders
-for path in ['./input/256/train/original', './input/256/train/grey',
-             './input/256/val/original', './input/256/val/grey',
-             './input/256/test/original', './input/256/test/grey']:
-    if not os.path.exists(path):
-        os.makedirs(path)
+os.makedirs('./input/256', exist_ok=True)
 
-# Save all images to input folder
-for i in range(len(test_images)):
+# Save different sizes of the train dataset
+for train_size in tqdm(TRAIN_SIZES, desc='Saving train datasets'):
+    images, images_grey = zip(*ds_train_combined.take(train_size).as_numpy_iterator())
+    np.save(f'./input/256/train_images_{train_size}.npy', np.array(images))
+    np.save(f'./input/256/train_images_grey_{train_size}.npy', np.array(images_grey))
+
+# Save validation and test dataset, always 100 images
+images, images_grey = zip(*ds_val_combined.take(VAL_SIZE).as_numpy_iterator())
+np.save('./input/256/val_images.npy', np.array(images))
+np.save('./input/256/val_images_grey.npy', np.array(images_grey))
+
+images, images_grey = zip(*ds_test_combined.take(TEST_SIZE).as_numpy_iterator())
+np.save('./input/256/test_images.npy', np.array(images))
+np.save('./input/256/test_images_grey.npy', np.array(images_grey))
+
+# Load npy files as a test
+test_images = np.load('./input/256/test_images.npy')
+test_images_grey = np.load('./input/256/test_images_grey.npy')
+
+# Save all images, save each train size in seperate folders
+for train_size in TRAIN_SIZES:
+    train_images = np.load(f'./input/256/train_images_{train_size}.npy')
+    train_images_grey = np.load(f'./input/256/train_images_grey_{train_size}.npy')
+    # Check if folder exists
+    os.makedirs(f'./input/256/train/{train_size}/original', exist_ok=True)
+    os.makedirs(f'./input/256/train/{train_size}/grey', exist_ok=True)
+    for i in trange(train_size, desc=f'Saving train dataset with size {train_size}'):
+        plt.imsave(f'./input/256/train/{train_size}/original/{i}.jpg', train_images[i])
+        plt.imsave(f'./input/256/train/{train_size}/grey/{i}.jpg', train_images_grey[i], cmap='gray')
+
+# Save validation and test images
+val_images = np.load('./input/256/val_images.npy')
+val_images_grey = np.load('./input/256/val_images_grey.npy')
+os.makedirs('./input/256/val/original', exist_ok=True)
+os.makedirs('./input/256/val/grey', exist_ok=True)
+for i in trange(VAL_SIZE, desc='Saving validation dataset'):
+    plt.imsave(f'./input/256/val/original/{i}.jpg', val_images[i])
+    plt.imsave(f'./input/256/val/grey/{i}.jpg', val_images_grey[i], cmap='gray')
+
+test_images = np.load('./input/256/test_images.npy')
+test_images_grey = np.load('./input/256/test_images_grey.npy')
+os.makedirs('./input/256/test/original', exist_ok=True)
+os.makedirs('./input/256/test/grey', exist_ok=True)
+for i in trange(TEST_SIZE, desc='Saving test dataset'):
     plt.imsave(f'./input/256/test/original/{i}.jpg', test_images[i])
-    plt.imsave(f'./input/256/test/grey/{i}_grey.jpg', test_images_grey[i], cmap='gray')
+    plt.imsave(f'./input/256/test/grey/{i}.jpg', test_images_grey[i], cmap='gray')
+
+# Plot npy images to show that they are still correct
+# fig, axis = plt.subplots(2, 5, figsize=(10, 5), sharex=True, sharey=True)
+# for i in range(5):
+#     plt.subplot(2, 5, i+1)
+#     plt.imshow(test_images[i])
+#     plt.subplot(2, 5, i+6)
+#     plt.imshow(test_images_grey[i], cmap='gray')
+# plt.show()
