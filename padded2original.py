@@ -20,7 +20,7 @@ right_bound = int((256 + new_width) / 2)
 
 
 # Loop over all images
-for i, file in enumerate(files[:10]):
+for i, file in enumerate(files):
     # Load image
     image = Image.open(os.path.join(path, file))
     image = np.array(image)
