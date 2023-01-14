@@ -17,7 +17,7 @@ args = parser.parse_args()
 
 
 def calculate_fid(images_original, images_predicted):
-    """Based on:
+    """Calculates FID score between two batches of images. Based on:
     https://wandb.ai/ayush-thakur/gan-evaluation/reports/How-to-Evaluate-GANs-using-Frechet-Inception-Distance-FID---Vmlldzo0MTAxOTI
     """
     # Calculate mean and covariance statistics
@@ -42,7 +42,21 @@ def calculate_fid(images_original, images_predicted):
     return fid
 
 
+def l2_norm(image1, image2):
+    """Calculate L2 norm between two images per channel. Assumes channels are the last dimension."""
+    l2_norms = []
+    for i in range(image1.shape[-1]):
+        l2_norms.append(np.linalg.norm(image1[..., i] - image2[..., i]))
+    return l2_norms
+
+
+def cosine_similarity(image1, image2):
+    """Calculate cosine similarity between two images."""
+    return np.dot(image1, image2) / (np.linalg.norm(image1) * np.linalg.norm(image2))
+
+
 def load_images(path, extention='.jpg'):
+    """Load images from a given path."""
     files = os.listdir(path)
     files = [f for f in files if f.endswith(extention)]
 
@@ -68,6 +82,28 @@ if __name__ == "__main__":
     # Check if shape of images is the same
     assert images_original.shape == images_predicted.shape, "Shape of images is not the same, have you restored the original resolution?"
 
+    # Normalise images
+    images_original = images_original / 255
+    images_predicted = images_predicted / 255
+
+    # Calculate L2 norm for each channel
+    l2_norms = []
+    for i in trange(images_original.shape[0], desc="Calculating L2 norm"):
+        l2_norms.append(l2_norm(images_original[i], images_predicted[i]))
+
+    print(
+        f"L2 norm (average over all channels): {np.mean(l2_norms):.2f}; Std: {np.std(l2_norms):.2f}; Min: {np.min(l2_norms):.2f}; Max: {np.max(l2_norms):.2f}")
+    print(
+        f"L2 norm per channel: {np.mean(l2_norms, axis=0).round(2)}; Std: {np.std(l2_norms, axis=0).round(2)}; Min: {np.min(l2_norms, axis=0).round(2)}; Max: {np.max(l2_norms, axis=0).round(2)}")
+
+    # Calculate cosine similarity
+    cosine_similarities = []
+    for i in trange(images_original.shape[0], desc="Calculating cosine similarity"):
+        cosine_similarities.append(cosine_similarity(images_original[i].flatten(), images_predicted[i].flatten()))
+
+    print(
+        f"Cosine similarity: {np.mean(cosine_similarities):.2f}; Std: {np.std(cosine_similarities):.2f}; Min: {np.min(cosine_similarities):.2f}; Max: {np.max(cosine_similarities):.2f}")
+
     # Flatten channels and reshape to 2D array of (N, 3*H*W)
     images_original = images_original.reshape(images_original.shape[0], -1)
     images_predicted = images_predicted.reshape(images_predicted.shape[0], -1)
@@ -75,10 +111,6 @@ if __name__ == "__main__":
     # Only keep first few values of each row due to memory constraints
     images_original = images_original[:, :N_FEATURES]
     images_predicted = images_predicted[:, :N_FEATURES]
-
-    # Normalise images
-    images_original = images_original / 255
-    images_predicted = images_predicted / 255
 
     # Divide data into batches
     images_original = np.array_split(images_original, N_BATCHES)
