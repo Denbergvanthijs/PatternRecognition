@@ -1,1 +1,5 @@
 tensorflow-datasets
+matplotlib
+numpy
+tensorflow
+tqdm
