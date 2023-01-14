@@ -1,6 +1,9 @@
 # Custom folders
 input/
 input.zip
+output
+output.zip
+unpadded/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
