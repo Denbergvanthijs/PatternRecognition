@@ -13,6 +13,8 @@ from tqdm import trange
 parser = argparse.ArgumentParser()
 parser.add_argument('--path-predicted', type=str, help='Path to folder of predicted images', default='./unpadded')
 parser.add_argument('--path-ground-truth', type=str, help='Path to folder of ground truth images', default='./input/218/test/original')
+parser.add_argument('--n-batches', type=int, help='Number of batches to divide data into due to memory constraints', default=20)
+parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=128)
 args = parser.parse_args()
 
 
@@ -68,8 +70,8 @@ def load_images(path, extention='.jpg'):
 
 
 if __name__ == "__main__":
-    N_BATCHES = 20  # Number of batches to divide data into due to memory constraints
-    N_FEATURES = 128  # Number of features to use from each image due to memory constraints
+    N_BATCHES = args.n_batches  # Number of batches to divide data into due to memory constraints
+    N_FEATURES = args.n_features  # Number of features to use from each image due to memory constraints
     # The more features used, the more accurate the FID score will be
     # However, the more features used, the more memory will be required
     # Thus the more batches will be required
