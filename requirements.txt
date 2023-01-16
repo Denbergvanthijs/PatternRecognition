@@ -3,4 +3,4 @@ matplotlib
 numpy
 tensorflow
 tqdm
-scikit-image
+pytorch-msssim

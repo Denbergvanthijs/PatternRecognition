@@ -6,9 +6,10 @@ import argparse
 import os
 
 import numpy as np
+import torch
 from PIL import Image
+from pytorch_msssim import ms_ssim, ssim
 from scipy import linalg
-from skimage.metrics import structural_similarity as ssim
 from tqdm import trange
 
 parser = argparse.ArgumentParser()
@@ -108,13 +109,19 @@ if __name__ == "__main__":
         f"Cosine similarity: {np.mean(cosine_similarities):.2f}; Std: {np.std(cosine_similarities):.2f}; Min: {np.min(cosine_similarities):.2f}; Max: {np.max(cosine_similarities):.2f}")
 
     # Calculate Structural Similarity Index (SSIM)
-    ssims = []
-    for i in trange(images_original.shape[0], desc="Calculating SSIM"):
-        ssims.append(ssim(images_original[i], images_predicted[i], channel_axis=2, data_range=1.0))
+    # Change axis order to (N, C, H, W) and change to torch tensor
+    images_original_pt = torch.from_numpy(np.moveaxis(images_original, -1, 1))
+    images_predicted_pt = torch.from_numpy(np.moveaxis(images_predicted, -1, 1))
+
+    ssims = ssim(images_original_pt, images_predicted_pt, data_range=1.0, size_average=False, nonnegative_ssim=True).numpy()
+    ms_ssims = ms_ssim(images_original_pt, images_predicted_pt, data_range=1.0, size_average=False).numpy()
 
     print(f"SSIM: {np.mean(ssims):.2f}; Std: {np.std(ssims):.2f}; Min: {np.min(ssims):.2f}; Max: {np.max(ssims):.2f}")
+    print(f"MS-SSIM: {np.mean(ms_ssims):.2f}; Std: {np.std(ms_ssims):.2f}; Min: {np.min(ms_ssims):.2f}; Max: {np.max(ms_ssims):.2f}")
     print(f"Indexes of 5 highest SSIM scores: {np.argsort(ssims)[-5:]}")
     print(f"SSIM scores of 5 highest SSIM scores: {np.sort(ssims)[-5:]}")
+    print(f"Indexes of 5 highest MS-SSIM scores: {np.argsort(ms_ssims)[-5:]}")
+    print(f"MS-SSIM scores of 5 highest MS-SSIM scores: {np.sort(ms_ssims)[-5:]}")
 
     # Flatten channels and reshape to 2D array of (N, 3*H*W)
     images_original = images_original.reshape(images_original.shape[0], -1)
