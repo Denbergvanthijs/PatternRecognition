@@ -8,13 +8,14 @@ import os
 import numpy as np
 from PIL import Image
 from scipy import linalg
+from skimage.metrics import structural_similarity as ssim
 from tqdm import trange
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path-predicted', type=str, help='Path to folder of predicted images', default='./unpadded')
 parser.add_argument('--path-ground-truth', type=str, help='Path to folder of ground truth images', default='./input/218/test/original')
 parser.add_argument('--n-batches', type=int, help='Number of batches to divide data into due to memory constraints', default=20)
-parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=2048)
+parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=128)
 args = parser.parse_args()
 
 
@@ -105,6 +106,15 @@ if __name__ == "__main__":
 
     print(
         f"Cosine similarity: {np.mean(cosine_similarities):.2f}; Std: {np.std(cosine_similarities):.2f}; Min: {np.min(cosine_similarities):.2f}; Max: {np.max(cosine_similarities):.2f}")
+
+    # Calculate Structural Similarity Index (SSIM)
+    ssims = []
+    for i in trange(images_original.shape[0], desc="Calculating SSIM"):
+        ssims.append(ssim(images_original[i], images_predicted[i], channel_axis=2, data_range=1.0))
+
+    print(f"SSIM: {np.mean(ssims):.2f}; Std: {np.std(ssims):.2f}; Min: {np.min(ssims):.2f}; Max: {np.max(ssims):.2f}")
+    print(f"Indexes of 5 highest SSIM scores: {np.argsort(ssims)[-5:]}")
+    print(f"SSIM scores of 5 highest SSIM scores: {np.sort(ssims)[-5:]}")
 
     # Flatten channels and reshape to 2D array of (N, 3*H*W)
     images_original = images_original.reshape(images_original.shape[0], -1)
