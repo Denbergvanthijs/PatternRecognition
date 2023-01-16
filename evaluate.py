@@ -3,6 +3,7 @@
 # Example: python evaluate.py --path-predicted ./unpadded --path-ground-truth ./input/218/test/original
 
 import argparse
+import json
 import os
 
 import numpy as np
@@ -17,6 +18,8 @@ parser.add_argument('--path-predicted', type=str, help='Path to folder of predic
 parser.add_argument('--path-ground-truth', type=str, help='Path to folder of ground truth images', default='./input/218/test/original')
 parser.add_argument('--n-batches', type=int, help='Number of batches to divide data into due to memory constraints', default=20)
 parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=128)
+parser.add_argument('--output-path', type=str, help='Path to output file to save results', default='./results.json')
+parser.add_argument('--decimals', type=int, help='Number of decimals to round results to', default=4)
 args = parser.parse_args()
 
 
@@ -71,6 +74,17 @@ def load_images(path, extention='.jpg'):
     return np.array(images)
 
 
+def calculate_statistics(array: np.ndarray, decimals: int = args.decimals) -> dict:
+    """Calculate mean, standard deviation, min and max of an array."""
+    return {"mean": np.mean(array).round(decimals), "std": np.std(array).round(decimals),
+            "min": np.min(array).round(decimals), "max": np.max(array).round(decimals)}
+
+
+def print_statistics(stats: dict, name: str = "") -> None:
+    """Print statistics of an array."""
+    print(f"{name} Mean: {stats['mean']}; Std: {stats['std']}; Min: {stats['min']}; Max: {stats['max']}")
+
+
 if __name__ == "__main__":
     N_BATCHES = args.n_batches  # Number of batches to divide data into due to memory constraints
     N_FEATURES = args.n_features  # Number of features to use from each image due to memory constraints
@@ -95,18 +109,16 @@ if __name__ == "__main__":
     for i in trange(images_original.shape[0], desc="Calculating L2 norm"):
         l2_norms.append(l2_norm(images_original[i], images_predicted[i]))
 
-    print(
-        f"L2 norm (average over all channels): {np.mean(l2_norms):.2f}; Std: {np.std(l2_norms):.2f}; Min: {np.min(l2_norms):.2f}; Max: {np.max(l2_norms):.2f}")
-    print(
-        f"L2 norm per channel: {np.mean(l2_norms, axis=0).round(2)}; Std: {np.std(l2_norms, axis=0).round(2)}; Min: {np.min(l2_norms, axis=0).round(2)}; Max: {np.max(l2_norms, axis=0).round(2)}")
+    scores = {"L2": calculate_statistics(l2_norms)}
+    print_statistics(scores["L2"], "L2")
 
     # Calculate cosine similarity
     cosine_similarities = []
     for i in trange(images_original.shape[0], desc="Calculating cosine similarity"):
         cosine_similarities.append(cosine_similarity(images_original[i].flatten(), images_predicted[i].flatten()))
 
-    print(
-        f"Cosine similarity: {np.mean(cosine_similarities):.2f}; Std: {np.std(cosine_similarities):.2f}; Min: {np.min(cosine_similarities):.2f}; Max: {np.max(cosine_similarities):.2f}")
+    scores["cosine_similarity"] = calculate_statistics(cosine_similarities)
+    print_statistics(scores["cosine_similarity"], "Cosine similarity")
 
     # Calculate Structural Similarity Index (SSIM)
     # Change axis order to (N, C, H, W) and change to torch tensor
@@ -116,12 +128,10 @@ if __name__ == "__main__":
     ssims = ssim(images_original_pt, images_predicted_pt, data_range=1.0, size_average=False, nonnegative_ssim=True).numpy()
     ms_ssims = ms_ssim(images_original_pt, images_predicted_pt, data_range=1.0, size_average=False).numpy()
 
-    print(f"SSIM: {np.mean(ssims):.2f}; Std: {np.std(ssims):.2f}; Min: {np.min(ssims):.2f}; Max: {np.max(ssims):.2f}")
-    print(f"MS-SSIM: {np.mean(ms_ssims):.2f}; Std: {np.std(ms_ssims):.2f}; Min: {np.min(ms_ssims):.2f}; Max: {np.max(ms_ssims):.2f}")
-    print(f"Indexes of 5 highest SSIM scores: {np.argsort(ssims)[-5:]}")
-    print(f"SSIM scores of 5 highest SSIM scores: {np.sort(ssims)[-5:]}")
-    print(f"Indexes of 5 highest MS-SSIM scores: {np.argsort(ms_ssims)[-5:]}")
-    print(f"MS-SSIM scores of 5 highest MS-SSIM scores: {np.sort(ms_ssims)[-5:]}")
+    scores["SSIM"] = calculate_statistics(ssims)
+    scores["MS-SSIM"] = calculate_statistics(ms_ssims)
+    print_statistics(scores["SSIM"], "SSIM")
+    print_statistics(scores["MS-SSIM"], "MS-SSIM")
 
     # Flatten channels and reshape to 2D array of (N, 3*H*W)
     images_original = images_original.reshape(images_original.shape[0], -1)
@@ -144,9 +154,12 @@ if __name__ == "__main__":
         fids.append(fid_current)
 
     # Calculate mean, std, min and max of FID scores
-    # Divide by images_per_batch to get average FID score per image
-    results = {"mean": np.mean(fids) / images_per_batch, "std": np.std(fids) / images_per_batch,
-               "min": np.min(fids) / images_per_batch, "max": np.max(fids) / images_per_batch}
+    scores["FID"] = calculate_statistics(fids)
+    for key, value in scores["FID"].items():
+        # Divide by images_per_batch to get average FID score per image
+        scores["FID"][key] = (value / images_per_batch).round(args.decimals)
+    print_statistics(scores["FID"], "FID")
 
-    print(f"Batch size: {images_per_batch} images; Number of batches: {N_BATCHES}; Number of features: {N_FEATURES} ({feature_percentage:.2f}%)")
-    print(f"FID score per image: {results['mean']:.2f}; Std: {results['std']:.2f}; Min: {results['min']:.2f}; Max: {results['max']:.2f}")
+    print("Saving scores to file...")
+    with open(args.output_path, "w") as f:
+        json.dump(scores, f, indent=4)
