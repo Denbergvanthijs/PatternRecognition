@@ -115,6 +115,7 @@ if __name__ == "__main__":
     random_indexes = np.random.choice(images_original.shape[1], N_FEATURES, replace=False)
     images_original = images_original[:, random_indexes]
     images_predicted = images_predicted[:, random_indexes]
+    images_per_batch = images_original.shape[0] // N_BATCHES
 
     # Divide data into batches
     images_original = np.array_split(images_original, N_BATCHES)
@@ -125,4 +126,10 @@ if __name__ == "__main__":
         fid_current = calculate_fid(np.array(images_original[batch]), np.array(images_predicted[batch]))
         fids.append(fid_current)
 
-    print(f"FID score: {np.mean(fids):.2f}; Std: {np.std(fids):.2f}; Min: {np.min(fids):.2f}; Max: {np.max(fids):.2f}")
+    # Calculate mean, std, min and max of FID scores
+    # Divide by images_per_batch to get average FID score per image
+    results = {"mean": np.mean(fids) / images_per_batch, "std": np.std(fids) / images_per_batch,
+               "min": np.min(fids) / images_per_batch, "max": np.max(fids) / images_per_batch}
+
+    print(f"Batch size: {images_per_batch} images; Number of batches: {N_BATCHES}; Number of features: {N_FEATURES} ({feature_percentage:.2f}%)")
+    print(f"FID score per image: {results['mean']:.2f}; Std: {results['std']:.2f}; Min: {results['min']:.2f}; Max: {results['max']:.2f}")
