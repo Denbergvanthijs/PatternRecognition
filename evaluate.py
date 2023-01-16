@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--path-predicted', type=str, help='Path to folder of predicted images', default='./unpadded')
 parser.add_argument('--path-ground-truth', type=str, help='Path to folder of ground truth images', default='./input/218/test/original')
 parser.add_argument('--n-batches', type=int, help='Number of batches to divide data into due to memory constraints', default=20)
-parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=128)
+parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=2048)
 args = parser.parse_args()
 
 
@@ -109,17 +109,19 @@ if __name__ == "__main__":
     # Flatten channels and reshape to 2D array of (N, 3*H*W)
     images_original = images_original.reshape(images_original.shape[0], -1)
     images_predicted = images_predicted.reshape(images_predicted.shape[0], -1)
+    feature_percentage = N_FEATURES / images_original[0].shape[-1] * 100
 
-    # Only keep first few values of each row due to memory constraints
-    images_original = images_original[:, :N_FEATURES]
-    images_predicted = images_predicted[:, :N_FEATURES]
+    # Select N_FEATURES random features
+    random_indexes = np.random.choice(images_original.shape[1], N_FEATURES, replace=False)
+    images_original = images_original[:, random_indexes]
+    images_predicted = images_predicted[:, random_indexes]
 
     # Divide data into batches
     images_original = np.array_split(images_original, N_BATCHES)
     images_predicted = np.array_split(images_predicted, N_BATCHES)
 
     fids = []
-    for batch in trange(N_BATCHES, desc="Calculating FID score"):
+    for batch in trange(N_BATCHES, desc=f"Calculating FID score based on {N_FEATURES} features ({feature_percentage:.2f}%)"):
         fid_current = calculate_fid(np.array(images_original[batch]), np.array(images_predicted[batch]))
         fids.append(fid_current)
 
