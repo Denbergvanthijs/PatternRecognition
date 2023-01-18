@@ -14,11 +14,11 @@ from scipy import linalg
 from tqdm import trange
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path-predicted', type=str, help='Path to folder of predicted images', default='./unpadded')
+parser.add_argument('--path-predicted', type=str, help='Path to folder of predicted images', default='./unpadded/gan/output_2500')
 parser.add_argument('--path-ground-truth', type=str, help='Path to folder of ground truth images', default='./input/218/test/original')
 parser.add_argument('--n-batches', type=int, help='Number of batches to divide data into due to memory constraints', default=20)
 parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=128)
-parser.add_argument('--output-path', type=str, help='Path to output file to save results', default='./results.json')
+parser.add_argument('--output-path', type=str, help='Path to output file to save results', default='./results/gan/2500.json')
 parser.add_argument('--decimals', type=int, help='Number of decimals to round results to', default=4)
 args = parser.parse_args()
 
@@ -161,5 +161,7 @@ if __name__ == "__main__":
     print_statistics(scores["FID"], "FID")
 
     print("Saving scores to file...")
+    fp_out = os.path.split(args.output_path)[0]
+    os.makedirs(fp_out, exist_ok=True)
     with open(args.output_path, "w") as f:
         json.dump(scores, f, indent=4)
