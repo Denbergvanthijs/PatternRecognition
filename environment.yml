@@ -1,0 +1,16 @@
+name: patrecog_env
+
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.8
+  - tensorflow
+  - numpy
+  - tensorflow-datasets
+  - matplotlib-base
+  - tqdm
+  - pip
+  - pip:
+    - pytorch-msssim
