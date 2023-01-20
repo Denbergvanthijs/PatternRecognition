@@ -20,6 +20,7 @@ parser.add_argument('--n-batches', type=int, help='Number of batches to divide d
 parser.add_argument('--n-features', type=int, help='Number of features to use from each image due to memory constraints', default=128)
 parser.add_argument('--output-path', type=str, help='Path to output file to save results', default='./results/gan/2500.json')
 parser.add_argument('--decimals', type=int, help='Number of decimals to round results to', default=4)
+parser.add_argument('--seed', type=int, help='', default=42)
 args = parser.parse_args()
 
 
@@ -139,6 +140,7 @@ if __name__ == "__main__":
     feature_percentage = N_FEATURES / images_original[0].shape[-1] * 100
 
     # Select N_FEATURES random features
+    np.random.seed(args.seed)
     random_indexes = np.random.choice(images_original.shape[1], N_FEATURES, replace=False)
     images_original = images_original[:, random_indexes]
     images_predicted = images_predicted[:, random_indexes]
