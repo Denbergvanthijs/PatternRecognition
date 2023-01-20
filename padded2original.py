@@ -1,7 +1,7 @@
 # Load a folder of padded images and save the original images
 # Restores the resolution from 256x256 to 218x178 by cropping the zero-padded edges from images
 # Usage: python padded2original.py --path-input <path to padded images> --path-output <path to store unpadded images>
-# Example: python padded2original.py --path-input ./unpadded --path-output ./input/218/test/original
+# Example: python padded2original.py --path-input ./padded --path-output ./unpadded
 
 import argparse
 import os
@@ -11,8 +11,8 @@ import tensorflow as tf
 from PIL import Image
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path-input', type=str, help='Path to folder of padded predicted images', default="./output/gan/output_untrained")
-parser.add_argument('--path-output', type=str, help='Path to folder to store the unpadded images', default="./unpadded/gan/output_untrained")
+parser.add_argument('--path-input', type=str, help='Path to folder of padded predicted images', default="./output/gan/output_100")
+parser.add_argument('--path-output', type=str, help='Path to folder to store the unpadded images', default="./unpadded/gan/output_100")
 args = parser.parse_args()
 
 path_input = args.path_input
