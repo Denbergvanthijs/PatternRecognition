@@ -46,4 +46,6 @@ for i, file in enumerate(files):
 
     # Save image
     image = Image.fromarray(image)
+    # remove the alpha channel (otherwise we can't save it as jpg)
+    image = image.convert('RGB')
     image.save(os.path.join(path_output, file))
