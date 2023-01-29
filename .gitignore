@@ -4,6 +4,7 @@ input.zip
 output
 output.zip
 unpadded/
+images/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
