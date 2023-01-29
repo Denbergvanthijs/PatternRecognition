@@ -1,0 +1,17 @@
+\begin{table}
+\centering
+\caption{Results of the t-test on the models.}
+\label{tab:ttest}
+\begin{tabular}{llrr}
+\toprule
+       Model 1 &     Model 2 &  p-value &  t-statistic \\
+\midrule
+Original image &         GAN &    0.789 &        1.814 \\
+Original image &         CNN &    0.866 &        2.453 \\
+Original image & Transformer &    0.874 &        2.538 \\
+   Transformer &         GAN &    0.952 &        4.387 \\
+           CNN &         GAN &    0.962 &        5.003 \\
+           CNN & Transformer &    0.999 &       33.337 \\
+\bottomrule
+\end{tabular}
+\end{table}
